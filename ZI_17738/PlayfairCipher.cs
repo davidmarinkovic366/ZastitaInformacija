@@ -38,6 +38,7 @@ namespace ZI_17738
             key = key.ToUpper();
             this.key_word = key.ToUpper();
             key = new string(key.Distinct().ToArray());
+            key = key.Replace(" ", String.Empty);
 
             Console.WriteLine("Distinct key: " + key + "\n");
 
