@@ -13,7 +13,12 @@ namespace ZI_17738
             //string test = pf.encrypt("ovo je primer podatakass");
             //pf.decrypt(test);
 
-            RSA rsa = new RSA(10);
+            // FIXME: ne radi lepo, overflow za BigInteger...[]
+            //RSA rsa = new RSA(10);
+            //string res = rsa.encrypt("KARLSRUHE");
+            //rsa.decrypt(res);
+
+
 
             Console.ReadLine();
         }
