@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace ZI_17738
 {
+    // Struktura koja sluzi za cuvanje pozicije odredjenog karaktera u tabeli, koristi se zajedno sa
+    // hash-mapom, gde je karakter kljuc, a struktura vrednost koju dobijamo na osnovu karaktera:
+    
+    // Daje dosta bolje performanse, jer nemamo stalno obilazenje matrice u potrazi za pozicijama,
+    // u zamenu za minimalno dodatno iskoriscenje memorije za cuvanje hes-mape;
     struct POSITION
     {
         public int X, Y;
@@ -81,15 +86,16 @@ namespace ZI_17738
                 }
             }
 
-            Console.WriteLine("Table: ");
-            for(int i = 0; i < 5; i++)
-            {
-                for(int j = 0; j < 5; j++)
-                {
-                    Console.Write(table[i, j] + " ");
-                }
-                Console.WriteLine("");
-            }
+            // Prikaz tabele, za potrebe debagovanja: 
+            //Console.WriteLine("Table: ");
+            //for(int i = 0; i < 5; i++)
+            //{
+            //    for(int j = 0; j < 5; j++)
+            //    {
+            //        Console.Write(table[i, j] + " ");
+            //    }
+            //    Console.WriteLine("");
+            //}
 
         }
 
@@ -99,8 +105,6 @@ namespace ZI_17738
             data = data.ToUpper();
             data = data.Replace(" ", String.Empty);
             data = data.Replace("I", String.Empty);
-            // FIXME: remove;
-            Console.WriteLine("Editovan string: " + data);
 
             // Deljenje stringa na substringove duzine 2:
             string[] arr = null;
@@ -108,9 +112,6 @@ namespace ZI_17738
             {
                 data = reformat(data);
             }
-
-            // Sad je lepo odradjeno, mozemo da pocnemo sa enkripcijom:
-            Console.WriteLine("Nakon prepravke, string izgleda ovako: " + data + "\n\n");
 
             string encrypted_data = "";
             foreach(string s in arr)
@@ -138,7 +139,6 @@ namespace ZI_17738
                     step += table[first.X, seccond.Y];
                     step += table[seccond.X, first.Y];
                 }
-
                 encrypted_data += step;
             }
 
@@ -222,7 +222,6 @@ namespace ZI_17738
             // Ako nismo vratili false, znaci da je dobro, samim tim je i string koji smo izmenili odgovarajuci!
             data = data_copy;
             return true;
-
         }
 
     }

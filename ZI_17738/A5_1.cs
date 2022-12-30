@@ -15,19 +15,16 @@ namespace ZI_17738
         protected BitArray x_reg = new BitArray(19, false);
         protected BitArray y_reg = new BitArray(22, false);
         protected BitArray z_reg = new BitArray(23, false);
-        protected int cycle_count = 0;
 
-        public A5_1(int count)
+        public A5_1()
         {
-            this.cycle_count = count;
         }
-        public A5_1(string key, int count)
+        public A5_1(string key)
         {
-            this.cycle_count = count;
 
             // Pretvaranje kljuca u niz tipa string koji predstavlja binarni zapis kljuca:
             string key_transformed = string.Join("", Encoding.ASCII.GetBytes(key).Select(n => Convert.ToString(n, 2).PadLeft(8, '0')));
-            Console.WriteLine(key_transformed);
+            //Console.WriteLine(key_transformed);
 
             // Okretanje kljuca naopako, prirodnije je da brojanje krene od 0 sa krajnje desne strane string:
             char[] charArray = key_transformed.ToCharArray();
@@ -63,18 +60,18 @@ namespace ZI_17738
             #endregion
 
             // FIXME: Stampanje, radi provere kako su popunjeni registri:
-            Console.WriteLine("Initial register state: \n");
+            //Console.WriteLine("Initial register state: \n");
 
-            Console.Write("X reg: ");
-            printRegister(this.x_reg);
+            //Console.Write("X reg: ");
+            //printRegister(this.x_reg);
 
-            Console.Write("Y reg: ");
-            printRegister(this.y_reg);
+            //Console.Write("Y reg: ");
+            //printRegister(this.y_reg);
 
-            Console.Write("Z reg: ");
-            printRegister(this.z_reg);
+            //Console.Write("Z reg: ");
+            //printRegister(this.z_reg);
 
-            Console.WriteLine("=============================================\n\n\n");
+            //Console.WriteLine("=============================================\n\n\n");
 
         }
         public bool maj(params bool[] args)
@@ -96,6 +93,8 @@ namespace ZI_17738
                 return false;
 
         }
+        
+        // Metoda sluzi samo za debagiranje i prikaz promene stanja registra izmedju dva koraka: 
         public void printRegister(BitArray register)
         {
             int i = 0;
@@ -108,40 +107,14 @@ namespace ZI_17738
                     data = "0 " + data;
                 i++;
             }
-            //char[] charArray = data.ToCharArray();
-            //Array.Reverse(charArray);
-            //data = new string(charArray);
 
-            //data = data.PadLeft((46 - data.Length));
             Console.WriteLine(data);
         }
 
-        public string generate_keystream()
+        // Preglednije je ovako nego da svaki put navodimo indekse pozicije u registru:
+        public bool generate_keystream()
         {
-            string keystream = "";
-            for (int counter = 0; counter < this.cycle_count; counter++)
-            {
-                bool cycle_result = shift_register(maj(x_reg.Get(8), y_reg.Get(10), z_reg.Get(10)));
-                if (cycle_result)
-                    keystream = "1" + keystream;
-                else
-                    keystream = "0" + keystream;
-
-                Console.WriteLine("Registers after: " + (counter + 1) + " steps: ");
-                Console.Write("X reg: "); 
-                printRegister(x_reg);
-
-                Console.Write("Y reg: "); 
-                printRegister(y_reg);
-
-                Console.Write("Z reg: ");
-                printRegister(z_reg);
-
-                Console.WriteLine("=============================================\n\n\n");
-            
-            }
-
-            return keystream;
+            return shift_register(maj(x_reg.Get(8), y_reg.Get(10), z_reg.Get(10)));
         }
 
         public bool shift_register(bool val)
@@ -169,6 +142,55 @@ namespace ZI_17738
 
             // Vracamo bit koji predstavlja deo kljuca:
             return (x_reg.Get(x_reg.Length - 1) ^ y_reg.Get(y_reg.Length - 1) ^ z_reg.Get(z_reg.Length - 1));
+        }
+
+        // Mora da vrati niz bajtova zato sto ako vratimo string, desi se da zbog karaktera
+        // potpuno promeni odredjene karaktere koji nisu standartni u ASCII tabeli (zbog opsega vrednost),
+        // pa se desi da broj '1' pretvori u specijalni karakter srce...
+        public byte[] encrypt(string data)
+        {
+            // Razbijanje podataka na byte vrednosti [OK]:
+            BitArray bit_arr = new BitArray(Encoding.ASCII.GetBytes(data));
+            BitArray result = new BitArray(bit_arr.Length, false);  // Default su svi 0!
+
+            // Petlja za kodiranje podataka: [OK]
+            for(int i = 0; i < bit_arr.Length; i++)
+            {
+                bool key_bit = generate_keystream();
+                result.Set(i, bit_arr[i] ^ key_bit);
+            }
+
+            byte[] result_arr = new byte[(result.Length - 1) / 8 + 1];
+            result.CopyTo(result_arr, 0);
+
+            // Vracanje rezultata: [OK]
+            string result_str = Encoding.ASCII.GetString(result_arr);
+            Console.WriteLine("Encrypted data: " + result_str);
+            return result_arr;
+        }
+
+
+        // Uzimamo niz byte-ova koji smo prethodno dobili kodiranjem, i pretvara u string podatak
+        public string decrypt(byte[] data)
+        {
+            // Pretvaranje niza byte-ova u niz bit-ova [OK]:
+            BitArray bit_arr = new BitArray(data);
+            BitArray result = new BitArray(bit_arr.Length, false);  // Default su svi 0!
+
+            // Petlja za dekodiranje podataka: [OK]
+            for (int i = 0; i < bit_arr.Length; i++)
+            {
+                bool key_bit = generate_keystream();
+                result.Set(i, bit_arr[i] ^ key_bit);
+            }
+
+            byte[] result_arr = new byte[(result.Length - 1) / 8 + 1];
+            result.CopyTo(result_arr, 0);
+
+            // Vracanje rezultata: [OK]
+            string result_str = Encoding.ASCII.GetString(result_arr);
+            Console.WriteLine("Decrypted data: " + result_str);
+            return result_str;
         }
     }
 }
