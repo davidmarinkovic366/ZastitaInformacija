@@ -23,20 +23,20 @@ namespace ZI_17738
             //string res = rsa.encrypt("KARLSRUHE");
             //rsa.decrypt(res);
 
-            AES a = new AES((256 / 8), Encoding.ASCII.GetBytes("kljuckljuckljuckljuckljukrpsmrit"));
+            AES a = new AES((128 / 8), Encoding.ASCII.GetBytes("kljuckljuckljuck"));
             
-            byte[] buff = Encoding.ASCII.GetBytes("fdasdasd ovo da enkript?krpsmrit");
-            byte[,] data = new byte[4, 8];
+            byte[] buff = Encoding.ASCII.GetBytes("fdksdasd ovo da?");
+            byte[,] data = new byte[4, 4];
             int counter = 0;
             for(int i = 0; i < 4; i++)
             {
-                for(int j = 0; j < 8; j++)
+                for(int j = 0; j < 4; j++)
                 {
                     data[i, j] = (byte)buff[counter++];
                 }
             }
-            a.encrypt(data, "F:\\zi\\encrypt_result.bin");
-
+            data = a.encrypt(data, "F:\\zi\\encrypt_result.bin");
+            a.decrypt("F:\\zi\\encrypt_result.bin");
 
             Console.ReadLine();
         }
