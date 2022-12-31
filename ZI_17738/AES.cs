@@ -74,24 +74,26 @@ namespace ZI_17738
             Console.WriteLine("Got data: ");
             print_data(data);
             // Inicijalno, prva runda samo radi ovo, po definiciji AES-a:
-            add_round_key(ref data);
+            add_round_key(ref data, 0);
 
-            int round_counter = this.round_num - 1;         // prva runda je bila samo add_round_key()
+            int round_counter = this.round_num;         // prva runda je bila samo add_round_key()
 
-            do
+            for (int round = 1; round <= this.round_num - 1; ++round)
             {
-                shift_rows(ref data);
-                sub_bytes(ref data);
-                add_round_key(ref data);
-                mix_columns(ref data);
 
-                round_counter--;        // Prosla je jedna runda;
-            } while (round_counter > 0);
+                sub_bytes(ref data);
+                shift_rows(ref data);
+                //mix_columns(ref data);
+                add_round_key(ref data, round);
+
+                Console.WriteLine("Encrypting round: " + round);
+                print_data(data);
+            }
 
             // poslednji prolaz, bez mesanja kolona, po opisu algoritma:
-            shift_rows(ref data);
             sub_bytes(ref data);
-            add_round_key(ref data);
+            shift_rows(ref data);
+            add_round_key(ref data, this.round_num);
 
             // Upis rezultata u binarni fajl [OK];
             BinaryWriter br = new BinaryWriter(File.Open(file, FileMode.Create));
@@ -103,17 +105,86 @@ namespace ZI_17738
             br.Flush();
             br.Close();
 
-            Console.WriteLine("\nReturning data: ");
+            Console.WriteLine("Encrypter round final: ");
             print_data(data);
+
+            //Console.WriteLine("\nReturning data: ");
+            //print_data(data);
 
             // Vracanje rezultata, ukoliko nam treba?
             return data;
         }
 
-        public byte[,] decrypt(byte[,] data)
+        public byte[,] decrypt(string file)
         {
+            //Console.WriteLine("Got data: ");
+            //print_data(data);
+
+            // Readnig data from file: [OK]
+            byte[] buff = File.ReadAllBytes(file);
+
+            // Creating data matrix: [OK]
+            byte[,] data = new byte[4, this.key_bytes / 4]; 
+            int counter = 0;
+            for(int i = 0; i < 4; i++)
+            {
+                for(int j = 0; j < this.key_bytes / 4; j++)
+                {
+                    data[i, j] = (byte)(buff[counter++]);
+                }
+            }
+
+            // Inicijalno, prva runda samo radi ovo, po definiciji AES-a:
+            add_round_key(ref data, this.round_num);
+
+            int round_counter = this.round_num;         // prva runda je bila samo add_round_key()
+
+            for(int round = this.round_num-1; round >= 1; --round)
+            {
+
+
+                inverted_shift_rows(ref data);
+                inverted_sub_bytes(ref data);
+
+                Console.WriteLine("Decrypting round: " + round);
+                print_data(data);
+                
+                add_round_key(ref data, round);
+                
+                //inverted_mix_columns(ref data);
+
+                //Console.WriteLine("Decrypt round: " + round);
+                //print_data(data);
+            }
+
+            // poslednji prolaz, bez mesanja kolona, po opisu algoritma:
+            inverted_shift_rows(ref data);
+            inverted_sub_bytes(ref data);
+            add_round_key(ref data, 0);
+
+            Console.WriteLine("Decrypter round final: ");
+            print_data(data);
+
+            // Pretvaranje rezultata nazad u string [OK]:
+
+            buff = new byte[this.key_bytes];
+            counter = 0;
+            for(int i = 0; i < 4; i++)
+            {
+                for(int j = 0; j < this.key_bytes / 4; j++)
+                {
+                    buff[counter++] = (byte)data[i, j];
+                }
+            }
+
+            string result = Encoding.ASCII.GetString(buff);
+            Console.WriteLine("Decoded data: " + result);
+
+            // Vracanje rezultata, ukoliko nam treba?
             return data;
         }
+
+        #region SubBytes
 
         // [OK]
         protected void sub_bytes(ref byte[,] data)
@@ -135,6 +206,30 @@ namespace ZI_17738
             // Return data [OK]
             //return data;
         }
+        // [OK]
+        protected void inverted_sub_bytes(ref byte[,] data)
+        {
+            // Nested for loops for changing values [OK]
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < this.key_bytes / 4; j++)
+                {
+                    // Izvlacenje nizih i visih 4b sadrzaja (poput rada sa registrima) bajta:
+                    byte lower_reg = (byte)(data[i, j] & 0x0F);
+                    byte upper_reg = (byte)(data[i, j] >> 4);
+
+                    // Zamena polja odgovarajucom vrednoscu iz look-up tabele:
+                    data[i, j] = (byte)(this.sub_byte_inverse[upper_reg, lower_reg]);
+                }
+            }
+
+            // Return data [OK]
+            //return data;
+        }
+
+        #endregion
+
+        #region Shift
 
         // [OK]
         protected void shift_rows(ref byte[,] data)
@@ -148,20 +243,48 @@ namespace ZI_17738
                 // Prvo vrsimo rotiranje niza, ne pitaj za formulu, bukvalno sam 200 puta imao muku sa tim, napamet je znam
                 for(int j = 0; j < this.key_bytes / 4; j++)
                 {
-                    byte y_pos = (byte)((j + ((this.key_bytes / 4) - i)) % (this.key_bytes / 4));
-                    tmp[j] = data[i, y_pos];
+                    tmp[j] = data[i, j];
                 }
 
                 // Sada vrsimo zamenu redova:
                 for(int j = 0; j < this.key_bytes / 4; j++)
                 {
-                    data[i, j] = tmp[j];
+                    data[i, j] = tmp[(i + j) % (this.key_bytes / 4)];
                 }
             }
 
             // Return data [OK]
             //return data;
         }
+        // [OK]
+        protected void inverted_shift_rows(ref byte[,] data)
+        {
+            // Shifting [OK]: 
+            //int[] shift_count = { 1, 2, 3 };
+            byte[] tmp = new byte[this.key_bytes / 4];
+
+            for (int i = 1; i < 4; i++)
+            {
+                // Prvo vrsimo rotiranje niza, ne pitaj za formulu, bukvalno sam 200 puta imao muku sa tim, napamet je znam
+                for (int j = 0; j < this.key_bytes / 4; j++)
+                {
+                    tmp[j] = data[i, j];
+                }
+
+                // Sada vrsimo zamenu redova:
+                for (int j = 0; j < this.key_bytes / 4; j++)
+                {
+                    data[i, (j + i) % (this.key_bytes / 4)] = tmp[j];
+                }
+            }
+
+            // Return data [OK]
+            //return data;
+        }
+
+        #endregion
+
+        #region Mix
 
         // [OK]
         protected void mix_columns(ref byte[,] data)
@@ -181,7 +304,7 @@ namespace ZI_17738
             // vrsimo mnozenje 2 vrste (index 1): [OK]
             for(int i = 0; i < 4; i++)
             {
-                vec[i] = (byte)(gfmultby02(data[index_mat[i, 0], 1]) + gfmultby01(data[index_mat[i, 1], 1]) + gfmultby01(data[index_mat[i, 2], 1]) + gfmultby03(data[index_mat[i, 3], 1]));
+                vec[i] = (byte)(gfmultby02(data[index_mat[i, 0], 1]) + gfmultby03(data[index_mat[i, 1], 1]) + gfmultby01(data[index_mat[i, 2], 1]) + gfmultby01(data[index_mat[i, 3], 1]));
             }
 
             // zamena vektora: [OK]
@@ -193,21 +316,60 @@ namespace ZI_17738
             // Return data [OK]
             // return data;
         }
+        // [OK]
+        protected void inverted_mix_columns(ref byte[,] data)
+        {
+            // vrsimo generisanje vektora:
+            byte[] vec = new byte[4];      // rezultujuci vektor
+
+            // redosled mnozenja, cuvamo indekse reda: [OK]
+            byte[,] index_mat = new byte[4, 4]
+            {
+                { 0, 3, 2, 1 },    //r0
+                { 1, 0, 3, 2 },    //r1
+                { 2, 1, 0, 3 },    //r2
+                { 3, 2, 1, 0 }     //r3
+            };
+
+            // vrsimo mnozenje 2 vrste (index 1): [OK]
+            for (int i = 0; i < 4; i++)
+            {
+                vec[i] = (byte)(gfmultby0e(data[index_mat[i, 0], 1]) + gfmultby0b(data[index_mat[i, 1], 1]) + gfmultby0d(data[index_mat[i, 2], 1]) + gfmultby09(data[index_mat[i, 3], 1]));
+            }
+
+            // zamena vektora: [OK]
+            for (int i = 0; i < 4; i++)
+            {
+                data[i, 1] = (byte)vec[i];
+            }
+
+            // Return data [OK]
+            // return data;
+        }
+
+        #endregion
 
         // [OK]
-        protected void add_round_key(ref byte[,] data)
+        protected void add_round_key(ref byte[,] data, int round)
         {
             // Da ne bi pravio novu promenljivu, fiksno, menja se byte na poziciji mat[3, 3];
             // A i radi za sve duzine kljuceva, tako da je to tako:
 
             // XOR on position [3, 3] [OK]
 
+            //for(int i = 0; i < 4; i++)
+            //{
+            //    for(int j = 0; j < this.key_bytes / 4; j++)
+            //    {
+            //        data[i, j] = (byte)(data[i, j] ^ this.sub_byte_mat[i, j]);
+            //    }
+            //}
+
             data[3, 3] = (byte)(data[3, 3] ^ this.key_matrix[3, 3]);
 
             // Return data [OK]
             //return data;
         }
-
         // [OK]
         public void print_data(byte[,] data)
         {
@@ -228,6 +390,7 @@ namespace ZI_17738
         {
             return b;
         }
+
         private static byte gfmultby02(byte b)
         {
             if (b < 0x80)
@@ -235,6 +398,7 @@ namespace ZI_17738
             else
                 return (byte)((int)(b << 1) ^ (int)(0x1b));
         }
+
         private static byte gfmultby03(byte b)
         {
             return (byte)((int)gfmultby02(b) ^ (int)b);
@@ -242,6 +406,38 @@ namespace ZI_17738
 
 
         #endregion
+
+        #region Inverse Multiplying
+
+        private static byte gfmultby09(byte b)
+        {
+            return (byte)((int)gfmultby02(gfmultby02(gfmultby02(b))) ^
+                (int)b);
+        }
+
+        private static byte gfmultby0b(byte b)
+        {
+            return (byte)((int)gfmultby02(gfmultby02(gfmultby02(b))) ^
+                (int)gfmultby02(b) ^
+                (int)b);
+        }
+
+        private static byte gfmultby0d(byte b)
+        {
+            return (byte)((int)gfmultby02(gfmultby02(gfmultby02(b))) ^
+                (int)gfmultby02(gfmultby02(b)) ^
+                (int)(b));
+        }
+
+        private static byte gfmultby0e(byte b)
+        {
+            return (byte)((int)gfmultby02(gfmultby02(gfmultby02(b))) ^
+                (int)gfmultby02(gfmultby02(b)) ^
+                (int)gfmultby02(b));
+        }
+
+        #endregion
+
 
     }
 
