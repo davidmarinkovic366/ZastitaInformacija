@@ -69,10 +69,17 @@ namespace ZI_17738
 
         }
 
-        public byte[,] encrypt(byte[,] data, string file)
+        public byte[] encrypt(byte[] input_data, string file)
         {
-            Console.WriteLine("Got data: ");
-            print_data(data);
+            // Pretvaranje niza podataka u matricu, jer AES radi sa matricom:
+            byte[,] data = new byte[4, this.key_bytes / 4];
+            int counter = 0;
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < this.key_bytes / 4; j++)
+                    data[i, j] = input_data[counter++];
+
+            //Console.WriteLine("Got data: ");
+            //print_data(data);
             // Inicijalno, prva runda samo radi ovo, po definiciji AES-a:
             add_round_key(ref data, 0);
 
@@ -86,8 +93,8 @@ namespace ZI_17738
                 //mix_columns(ref data);
                 add_round_key(ref data, round);
 
-                Console.WriteLine("Encrypting round: " + round);
-                print_data(data);
+                //Console.WriteLine("Encrypting round: " + round);
+                //print_data(data);
             }
 
             // poslednji prolaz, bez mesanja kolona, po opisu algoritma:
@@ -105,14 +112,17 @@ namespace ZI_17738
             br.Flush();
             br.Close();
 
-            Console.WriteLine("Encrypter round final: ");
+            Console.WriteLine("AES encrypted block: ");
             print_data(data);
 
-            //Console.WriteLine("\nReturning data: ");
-            //print_data(data);
+            byte[] buff = new byte[this.key_bytes];
+            counter = 0;
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < this.key_bytes / 4; j++)
+                    buff[counter++] = data[i, j];
 
             // Vracanje rezultata, ukoliko nam treba?
-            return data;
+            return buff;
         }
 
         public byte[,] decrypt(string file)
@@ -146,15 +156,11 @@ namespace ZI_17738
                 inverted_shift_rows(ref data);
                 inverted_sub_bytes(ref data);
 
-                Console.WriteLine("Decrypting round: " + round);
-                print_data(data);
+                //Console.WriteLine("Decrypting round: " + round);
+                //print_data(data);
                 
                 add_round_key(ref data, round);
-                
-                //inverted_mix_columns(ref data);
-
-                //Console.WriteLine("Decrypt round: " + round);
-                //print_data(data);
+               
             }
 
             // poslednji prolaz, bez mesanja kolona, po opisu algoritma:
@@ -162,8 +168,8 @@ namespace ZI_17738
             inverted_sub_bytes(ref data);
             add_round_key(ref data, 0);
 
-            Console.WriteLine("Decrypter round final: ");
-            print_data(data);
+            //Console.WriteLine("AES decrypted block: ");
+            //print_data(data);
 
             // Pretvaranje rezultata nazad u string [OK]:
 
