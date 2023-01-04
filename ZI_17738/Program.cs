@@ -51,7 +51,7 @@ namespace ZI_17738
             //cfbb.decrypt(res);
 
             SHA2 sh = new SHA2();
-            sh.encrypt("askajdlansdklamsda.sdaskajdlansdklamsda.sdaskajdlansdklamsd");
+            sh.encrypt("askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad");
 
             Console.ReadLine();
         }

@@ -2,7 +2,9 @@
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,12 +42,32 @@ namespace ZI_17738
         public string encrypt(string data)
         {
             byte[] transformed = preprocessing(Encoding.ASCII.GetBytes(data));
+            uint[] table = new uint[64];
+
             for(int i = 0; i < transformed.Length / 64; i++)
             {
                 uint[] block = split_block(transformed, (i * 64));
+                table = init_table(block);
+                process_block(table);
             }
 
-            return " ";
+            // Pretvaranje podataka u string:
+            //byte[] list = new byte[256];
+            byte[] h00 = BitConverter.GetBytes(this.h0);
+            byte[] h11 = BitConverter.GetBytes(this.h1);
+            byte[] h22 = BitConverter.GetBytes(this.h2);
+            byte[] h33 = BitConverter.GetBytes(this.h3);
+            byte[] h44 = BitConverter.GetBytes(this.h4);
+            byte[] h55 = BitConverter.GetBytes(this.h5);
+            byte[] h66 = BitConverter.GetBytes(this.h6);
+            byte[] h77 = BitConverter.GetBytes(this.h7);
+
+            List<byte> lista = h00.Concat(h11).Concat(h22).Concat(h33).Concat(h44).Concat(h55).Concat(h66).Concat(h77).ToList();
+            string result_str = BitConverter.ToString(lista.ToArray()).Replace("-", String.Empty).ToLower();
+
+            Console.WriteLine("Result: " + result_str);
+
+            return result_str;
         }
 
         protected byte[] preprocessing(byte[] initial_message)
@@ -82,45 +104,131 @@ namespace ZI_17738
             foreach (byte b in length_arr)
                 data.Add(b);
 
-            data.ForEach(x => Console.Write(x + " "));
-            Console.WriteLine();
-
             return data.ToArray();
         }
 
         protected uint[] split_block(byte[] data, int start = 0)
         {
-            uint[] result = new uint[8];
-            for(int i = 0; i < 8; i++)
+            uint[] result = new uint[16];
+            for(int i = 0; i < 16; i++)
             {
                 // Nzm zasto, ali moj komp uporno radi sa big endian podacima, a za algoritam
-                // su potrebni little endian podaci, tako da moram
-                result[i] = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(data, (start + (i * 8))));
-                Console.WriteLine(result[i]);
+                // su potrebni little endian podaci, tako da moram ovako:
+                result[i] = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(data, (start + (i * 4))));
             }
 
             return result;
         }
 
-        //protected uint Ch()
-        //{
-        //    return (uint)(this.h4 ^ this.h5 ^ this.h6);
-        //}
-        //protected uint S1()
-        //{
-        //    return (uint)(this.)
-        //}
-        //protected uint Ma()
-        //{
 
-        //}
+        #region Processing
+        protected uint S0(uint num) 
+        {
+            uint first = BitOperations.RotateRight(num, 2);
+            uint seccond = BitOperations.RotateRight(num, 13);
+            uint third = BitOperations.RotateRight(num, 22);
 
-        //protected uint S0()
-        //{
+            return (first ^ seccond ^ third);
+        }
+        protected uint S1(uint num)
+        {
+            uint first = BitOperations.RotateRight(num, 6);
+            uint seccond = BitOperations.RotateRight(num, 11);
+            uint third = BitOperations.RotateRight(num, 25);
 
-        //}
+            return (first ^ seccond ^ third);
+        }
+        protected uint Ma(uint first, uint seccond, uint third)
+        {
+            return ((first & seccond) ^ (first & third) ^ (seccond & third));
+        }
 
+        protected uint Ch(uint first, uint seccond, uint third)
+        {
+            return ((first & seccond) ^ ((~first) & third));
+        }
 
+        // kao argument saljemo uint[64] tabelu W koju smo kreirali sa init_table
+        protected void process_block(uint[] data)
+        {
+            uint[] table = new uint[8]
+            {
+                h0, h1, h2, h3, h4, h5, h6, h7
+            };
+
+            for(int i = 0; i < 64; i++)
+            {
+                uint s0 = S0(table[0]); // A
+                uint s1 = S1(table[4]); // E
+
+                uint ma = Ma(table[0], table[1], table[2]); // A, B, C
+                uint ch = Ch(table[4], table[5], table[6]); // E, F, G
+
+                uint t1 = table[7] + s1 + ch + this.keys[i] + data[i];
+                uint t2 = s0 + ma;
+
+                table[7] = table[6];
+                table[6] = table[5];
+                table[5] = table[4];
+                table[4] = table[3] + t1;
+                table[3] = table[2];
+                table[2] = table[1];
+                table[1] = table[0];
+                table[0] = t1 + t2;
+            }
+
+            // Nakon 64 runde, rezultate prethodnog algoritma dodajemo na pocetno inicijalizovane 
+            // vektore
+            this.h0 = this.h0 + table[0];
+            this.h1 = this.h1 + table[1];
+            this.h2 = this.h2 + table[2];
+            this.h3 = this.h3 + table[3];
+            this.h4 = this.h4 + table[4];
+            this.h5 = this.h5 + table[5];
+            this.h6 = this.h6 + table[6];
+            this.h7 = this.h7 + table[7];
+
+            // FIXME return
+            //return table;
+        }
+
+        #endregion
+
+        #region Table init
+        protected uint Sum0(uint num)
+        {
+            uint first_rotation = BitOperations.RotateRight(num, 7);
+            uint seccond_rotation = BitOperations.RotateRight(num, 18);
+            uint shift_result = num >> 3;
+
+            return (first_rotation ^ seccond_rotation ^ shift_result);
+        }
+        protected uint Sum1(uint num)
+        {
+            uint first_rotation = BitOperations.RotateRight(num, 17);
+            uint seccond_rotation = BitOperations.RotateRight(num, 19);
+            uint shift_result = num >> 10;
+
+            return (first_rotation ^ seccond_rotation ^ shift_result);
+        }
+        protected uint[] init_table(uint[] data) 
+        {
+            uint[] table = new uint[64];
+            
+            // from 0 - 8
+            for(int i = 0; i < 16; i++)
+                table[i] = data[i];
+
+            //s0 s1 operacije..
+            for(int i = 16; i < 64; i++)
+            {
+                table[i] = (uint)(Sum1(table[i - 2]) + table[i - 7] + Sum0(table[i - 15]) + table[i - 16]);
+            }
+
+            return table;
+        }
+
+        #endregion  
 
 
     }
