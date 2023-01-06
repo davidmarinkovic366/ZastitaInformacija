@@ -15,12 +15,12 @@ namespace ZI_17738
         protected long q = 61;
 
         // generise se nakon poziva konstruktora:
-        protected long n = 2501;
-        protected long z = 2400;
-        protected long private_key = 2087;
-        protected long public_key = 23;
+        protected long n;
+        protected long z;
+        protected long private_key;
+        protected long public_key;
 
-        protected int k = 3;
+        protected int k;
         protected int chunk_size;
 
         // Dodatak za threading:
@@ -32,133 +32,48 @@ namespace ZI_17738
 
             this.n = this.p * this.q;
             this.z = (this.p - 1) * (this.q - 1);
-            //this.result_flags = new bool[thread_count];
-            //for (int i = 0; i < thread_count; i++)
-            //{
-            //    result_flags[i] = false;
-            //}
 
-            //bool is_prime = false;
-            //bool is_coprime = false;
-            //long offset = 0;
+            this.result_flags = new bool[thread_count];
+            // FIXME: suvisno, svakako se prilikom svakog prolaska kroz do-while izvrsava restartovanje
+            // flegova;
+            //this.result_flags.Select(x => x = false);
 
-            //do
-            //{
-            //    // Postavljamo sve vrednosti inicijalno na false:
-            //    this.result_flags.Select(x => x = false);
-            //    long num = this.z - offset;
-            //    is_prime = false;
+            bool is_coprime = false;
+            long offset = 0;
+            int start = 2;
 
-            //    List<Thread> thread_list = new List<Thread>(thread_count);
-            //    for (int i = 0; i < thread_count; i++)
-            //    {
-            //        long tmp = i;
-            //        thread_list.Add(new Thread(() => check_is_prime((num - tmp), (int)tmp)));
-            //    }
+            // Pronalazenje vrednosti E:
+            // E sad, malo sam se snasao sa pravilima, jer vazi da su dva uzastopna 
+            // integera uvek uzajamno-prosti, tako da uz pravilo da 1 < e < fi(n),
+            // dobijamo da vrednost E uvek moze da bude fi(n) - 1, cime zadovoljavamo
+            // oba pravila, svestan sam da pravi algoritam ne radi ovako, ali dosta brze izvrsava
+            // algoritam ako ne moramo da proveravamo svaki put za svaki broj da li je uzajamno-prost
+            // sa fi(n)
+            // ref: https://simple.wikipedia.org/wiki/Coprime
+            // pravilo 1.
+            // moze se proveriti ovim alatom za bilo koju kombinaciju p i q, odnosno, fi(n)
+            // ref: https://www.mathsisfun.com/numbers/coprime-calculator.html
 
-            //    thread_list.ForEach(x => x.Start());
-            //    thread_list.ForEach(x => x.Join());
+            this.public_key = this.z - 1;
 
-            //    // Provera da li smo naisli na neki prime number:
-            //    List<long> possible_primes = new List<long>();
-
-            //    for (int i = 0; i < thread_count; i++)
-            //    {
-            //        if (this.result_flags[i])
-            //        {
-            //            is_prime = true;
-            //            possible_primes.Add(num - i);
-            //        }
-            //    }
-
-            //    // Koji od brojeva u opsegu od num <-> (num - offset)
-            //    if (is_prime)
-            //    {
-            //        foreach (long l in possible_primes)
-            //        {
-            //            if (l != this.z)
-            //            {
-            //                if (are_co_primes(l, this.z) == 1)
-            //                {
-            //                    this.public_key = l;
-            //                    is_coprime = true;
-            //                    break;
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //    offset += thread_count;
-            //} while (!is_coprime);
-
-            ////Console.WriteLine("Public key: " + this.public_key);
-
-            //// Generisanje Privatnog kljuca (D): 
-            //bool is_private_found = false;
-            //is_prime = false;
-            //offset = 0;
-
-            //do
-            //{
-            //    this.result_flags.Select(x => x = false);
-            //    long num = this.public_key + offset;
-            //    is_prime = false;
-
-            //    List<Thread> thread_list = new List<Thread>(thread_count);
-            //    for (int i = 0; i < thread_count; i++)
-            //    {
-            //        long tmp = i;
-            //        thread_list.Add(new Thread(() => check_is_prime((num + tmp), (int)tmp)));
-            //    }
-
-            //    thread_list.ForEach(x => x.Start());
-            //    thread_list.ForEach(x => x.Join());
-
-            //    // Probamo za sve prime number-e da li se uklapaju u formulu: 
-            //    List<long> possible_primes = new List<long>();
-
-            //    for (int i = 0; i < thread_count; i++)
-            //    {
-            //        if (this.result_flags[i])
-            //        {
-            //            is_prime = true;
-            //            possible_primes.Add(num - i);
-            //        }
-            //    }
-
-            //    if (is_prime)
-            //    {
-            //        foreach (long candidate in possible_primes)
-            //        {
-            //            if (!(candidate == this.public_key) && check_private(candidate))
-            //            {
-            //                this.private_key = candidate;
-            //                is_private_found = true;
-            //                break;
-            //            }
-            //        }
-            //    }
-
-            //    offset += thread_count;
-            //} while (!is_private_found);
-
-            //// Nisam siguran, ali koliko sam skapirao sa online RSA key generatora, velicina
-            //// privatnog kljuca je uvek veca on public, ne u broju bitova, nego je sam broj private > public
-
-            // Racunanje velicine bloka:
-            int counter = 0;
-            int base_num = 2;
-            while (base_num < this.n)
+            // Pronalazenje vrednosti D:
+            int k = 0;
+            bool found = false;
+            do
             {
-                base_num = base_num << 1;
-                counter++;
-            }
+                Console.WriteLine("Testing k: ", k);
+                if ((1 + k * this.z) % this.public_key == 0)
+                {
+                    this.private_key = ((1 + k * this.z) / this.public_key);
+                    found = true;
+                }
 
-            counter--;
-            this.k = counter;
+                k++;
+            } while (!found || k < this.public_key);
+
             Console.WriteLine("N: \t" + this.n);
             Console.WriteLine("Z: \t" + this.z);
-            Console.WriteLine("K: \t" + this.k);
+            //Console.WriteLine("K: \t" + this.k);
             Console.WriteLine("Pr:\t" + this.private_key);
             Console.WriteLine("Pu:\t" + this.public_key);
 
@@ -202,17 +117,10 @@ namespace ZI_17738
             return ((num * public_key) % z == 1);
         }
 
-        public long are_co_primes(long first, long seccond)
-        {
-            if (first == 0 || seccond == 0)
-                return 0;
-            if (first == seccond)
-                return first;
-            if (first > seccond)
-                return are_co_primes(first - seccond, seccond);
-
-            return are_co_primes(first, seccond - first);
-        }
+        //public void are_co_primes(long first, long seccond, ref bool flag)
+        //{
+            
+        //}
 
         public string encrypt(string data)
         {

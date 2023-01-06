@@ -19,7 +19,7 @@ namespace ZI_17738
             //pf.decrypt(test);
 
             // FIXME: ne radi lepo, overflow za BigInteger...[]
-            //RSA rsa = new RSA(10);
+            RSA rsa = new RSA(10);
             //string res = rsa.encrypt("KARLSRUHE");
             //rsa.decrypt(res);
 
@@ -50,8 +50,8 @@ namespace ZI_17738
             //CFB cfbb = new CFB(Encoding.ASCII.GetBytes("kljuckljuckljuck"), Encoding.ASCII.GetBytes("initvectoraaaaaa"));
             //cfbb.decrypt(res);
 
-            SHA2 sh = new SHA2();
-            sh.encrypt("askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad");
+            //SHA2 sh = new SHA2();
+            //sh.encrypt("askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad.askajdlansdklamsad");
 
             Console.ReadLine();
         }
