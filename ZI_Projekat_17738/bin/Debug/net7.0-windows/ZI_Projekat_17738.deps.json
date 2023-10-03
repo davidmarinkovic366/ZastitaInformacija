@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v7.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v7.0": {
+      "ZI_Projekat_17738/1.0.0": {
+        "runtime": {
+          "ZI_Projekat_17738.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "ZI_Projekat_17738/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
