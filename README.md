@@ -27,5 +27,5 @@ Ukoliko izaberemo **SHA2** algoritam, mozemo da procerimo da li 2 fajla imaju is
 
 > :information_source: **RSA** algoritam za enkriptovanje/dekriptovanje slika :camera: moze malo da potraje :stopwatch: u zavisnosti od velicine slike koju smo izabrali, nakon zavrsetka, dobijamo na formi prikaz kriptovanih/dekriptovanih podataka, kao i mogucnost za cuvanje rezultata. 
 >
-> Nakon enkripcije slike, pa dekripcije, mozemo da upotrebimo **SHA2** da proverimo :microscope: da li algoritam funkcionise ispravno!
+> :information_source: Nakon enkripcije slike, pa dekripcije, mozemo da upotrebimo **SHA2** da proverimo :microscope: da li algoritam funkcionise ispravno!
 
